@@ -285,6 +285,17 @@ public abstract class BarLineChartBase<T extends BarLineScatterCandleBubbleData<
                     + drawCycles);
         }
     }
+    
+    // EDIT
+    @Override
+    public void invalidate() {
+    	super.invalidate();
+    	
+    	if(mData.getScaleAxesOnVisibilityChange()) {
+    		notifyDataSetChanged();
+    	}
+    }
+    // END EDIT
 
     /**
      * RESET PERFORMANCE TRACKING FIELDS

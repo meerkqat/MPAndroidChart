@@ -73,6 +73,13 @@ public abstract class ChartData<T extends DataSet<? extends Entry>> {
      * array that holds all DataSets the ChartData object represents
      */
     protected List<T> mDataSets;
+    
+    // EDIT
+    /**
+     * if set to true, making a DataSet invisible will rescale the axes so that the visible DataSets fill the whole chart  
+     */
+    protected boolean mScaleAxesOnVisibilityChange = false;
+    // END EDIT
 
     public ChartData() {
         mXVals = new ArrayList<String>();
@@ -157,6 +164,24 @@ public abstract class ChartData<T extends DataSet<? extends Entry>> {
 
         calcXValAverageLength();
     }
+    
+    // EDIT
+    /**
+     * determine whether the axes potentially rescale when making a DataSet invisible 
+     * 
+     * @return true if the axes can rescale
+     */
+    public boolean getScaleAxesOnVisibilityChange() {
+    	return mScaleAxesOnVisibilityChange;
+    }
+    
+    /**
+     * set if the axes should rescale when making a DataSet invisible
+     */
+    public void setScaleAxesOnVisibilityChange(boolean doScale) {
+    	mScaleAxesOnVisibilityChange = doScale;
+    }
+    // END EDIT
 
     /**
      * calculates the average length (in characters) across all x-value strings
@@ -241,21 +266,36 @@ public abstract class ChartData<T extends DataSet<? extends Entry>> {
             }
 
             // left axis
+            // EDIT
             T firstLeft = getFirstLeft();
 
             if (firstLeft != null) {
-
-                mLeftAxisMax = firstLeft.getYMax();
-                mLeftAxisMin = firstLeft.getYMin();
-
+            	
+            	// firstLeft can be invisible, set default values for min, max
+            	if (mScaleAxesOnVisibilityChange) {
+            		mLeftAxisMax = Float.MIN_VALUE;
+                	mLeftAxisMin = Float.MAX_VALUE;
+            	}
+	        	else {
+	        		mLeftAxisMax = firstLeft.getYMax();
+	                mLeftAxisMin = firstLeft.getYMin();
+	        	}
+            	
                 for (DataSet<?> dataSet : mDataSets) {
                     if (dataSet.getAxisDependency() == AxisDependency.LEFT) {
-                        if (dataSet.getYMin() < mLeftAxisMin)
+                    	// also update value only if the dataset is visible or we are not scaling 
+                        if (dataSet.getYMin() < mLeftAxisMin && (dataSet.isVisible() || !mScaleAxesOnVisibilityChange))
                             mLeftAxisMin = dataSet.getYMin();
 
-                        if (dataSet.getYMax() > mLeftAxisMax)
+                        if (dataSet.getYMax() > mLeftAxisMax && (dataSet.isVisible() || !mScaleAxesOnVisibilityChange))
                             mLeftAxisMax = dataSet.getYMax();
                     }
+                }
+                
+                // all datasets are invisible, set min & max to default
+                if (mScaleAxesOnVisibilityChange && mLeftAxisMax == Float.MIN_VALUE && mLeftAxisMin == Float.MAX_VALUE) {
+                	mLeftAxisMax = 0.0f;
+                	mLeftAxisMin = 0.0f;
                 }
             }
 
@@ -264,19 +304,31 @@ public abstract class ChartData<T extends DataSet<? extends Entry>> {
 
             if (firstRight != null) {
 
-                mRightAxisMax = firstRight.getYMax();
-                mRightAxisMin = firstRight.getYMin();
-
+            	if (mScaleAxesOnVisibilityChange) {
+                	mRightAxisMax = Float.MIN_VALUE;
+                	mRightAxisMin = Float.MAX_VALUE;
+            	} 
+            	else {
+            		mRightAxisMax = firstRight.getYMax();
+            		mRightAxisMin = firstRight.getYMin();
+            	}
+            	
                 for (DataSet<?> dataSet : mDataSets) {
                     if (dataSet.getAxisDependency() == AxisDependency.RIGHT) {
-                        if (dataSet.getYMin() < mRightAxisMin)
+                        if (dataSet.getYMin() < mRightAxisMin && (dataSet.isVisible() || !mScaleAxesOnVisibilityChange))
                             mRightAxisMin = dataSet.getYMin();
 
-                        if (dataSet.getYMax() > mRightAxisMax)
+                        if (dataSet.getYMax() > mRightAxisMax && (dataSet.isVisible() || !mScaleAxesOnVisibilityChange))
                             mRightAxisMax = dataSet.getYMax();
                     }
                 }
+                
+                if (mScaleAxesOnVisibilityChange && mRightAxisMax == Float.MIN_VALUE && mRightAxisMin == Float.MAX_VALUE) {
+                	mRightAxisMax = 0.0f;
+                	mRightAxisMin = 0.0f;
+                }
             }
+            // END EDIT
 
             // in case there is only one axis, adjust the second axis
             handleEmptyAxis(firstLeft, firstRight);
